@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animal Actions Match — Interactive Safari Matching Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* Safari & Jungle Theme Typography and Lush Backdrop */
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: radial-gradient(circle at top left, #dcfce7 0%, #fef9c3 48%, #ffedd5 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        h1, h2, h3, .font-display {
+            font-family: 'Fredoka', 'Nunito', sans-serif;
+        }
+
+        /* Subtle Paw Print Pattern Overlay */
+        .paw-bg {
+            background-image: radial-gradient(rgba(16, 185, 129, 0.08) 2px, transparent 2px);
+            background-size: 28px 28px;
+        }
+
+        /* Floating Jungle Leaves */
+        .leaf-decor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.2;
+            animation: leafSway 9s ease-in-out infinite;
+        }
+        @keyframes leafSway {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-14px) rotate(7deg); }
+        }
+
+        /* Tactile Card & Button Styling */
+        .match-card {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+            box-shadow: 0 5px 0 rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.06);
+            touch-action: none;
+        }
+        .match-card:not(.matched):hover {
+            transform: translateY(-2px) scale(1.015);
+            box-shadow: 0 7px 0 rgba(0, 0, 0, 0.12), 0 12px 20px rgba(0, 0, 0, 0.09);
+        }
+        .match-card.selected {
+            transform: scale(1.04);
+            border-color: #f59e0b !important;
+            background: #fffbeb !important;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.35), 0 8px 18px rgba(245, 158, 11, 0.25);
+        }
+        .match-card.drag-over {
+            transform: scale(1.06);
+            border-color: #10b981 !important;
+            background: #ecfdf5 !important;
+            box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.35);
+        }
+        .match-card.matched {
+            border-color: #10b981 !important;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+            box-shadow: 0 3px 0 rgba(16, 185, 129, 0.25);
+            cursor: pointer;
+        }
+
+        /* Gentle Shake for Wrong Match */
+        @keyframes gentleShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .anim-wrong {
+            animation: gentleShake 0.42s ease-in-out;
+            border-color: #f43f5e !important;
+            background-color: #fff1f2 !important;
+        }
+
+        /* Tactile Buttons */
+        .btn-tactile {
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.18), 0 8px 14px rgba(0, 0, 0, 0.1);
+        }
+        .btn-tactile:hover {
+            transform: translateY(-2px);
+        }
+        .btn-tactile:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+        }
+
+        /* SVG Connecting Lines */
+        .connector-line {
+            stroke-linecap: round;
+            transition: opacity 0.3s ease;
+        }
+        .connector-line-active {
+            stroke-dasharray: 10 8;
+            animation: dashFlow 0.8s linear infinite;
+        }
+        @keyframes dashFlow {
+            to { stroke-dashoffset: -18; }
+        }
+
+        /* ================= SPOTLIGHT STAGE CUSTOM ANIMATIONS ================= */
+
+        /* 1. Snake Slithers */
+        @keyframes stageSnakeSlither {
+            0%   { transform: translateX(-95px) translateY(0px) skewX(12deg) scaleX(1.06); }
+            25%  { transform: translateX(-30px) translateY(-14px) skewX(-14deg) scaleX(0.95); }
+            50%  { transform: translateX(35px) translateY(10px) skewX(14deg) scaleX(1.06); }
+            75%  { transform: translateX(95px) translateY(-12px) skewX(-12deg) scaleX(0.96); }
+            100% { transform: translateX(0px) translateY(0px) skewX(0deg) scaleX(1); }
+        }
+        .stage-anim-snake {
+            animation: stageSnakeSlither 2.1s ease-in-out infinite;
+        }
+
+        /* 2. Monkey Swings on Vine */
+        @keyframes stageMonkeySwing {
+            0%   { transform-origin: top center; transform: rotate(34deg); }
+            50%  { transform-origin: top center; transform: rotate(-34deg); }
+            100% { transform-origin: top center; transform: rotate(34deg); }
+        }
+        .stage-anim-monkey {
+            animation: stageMonkeySwing 1.4s ease-in-out infinite;
+        }
+
+        /* 3. Elephant Trumpets */
+        @keyframes stageElephantTrumpet {
+            0%, 100% { transform: scale(1) rotate(0deg) translateY(0); }
+            30%      { transform: scale(1.18) rotate(-18deg) translateY(-14px); }
+            50%      { transform: scale(1.24) rotate(-24deg) translateY(-18px); }
+            75%      { transform: scale(1.14) rotate(-12deg) translateY(-8px); }
+        }
+        .stage-anim-elephant {
+            animation: stageElephantTrumpet 1.5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+        }
+
+        @keyframes floatNote {
+            0%   { transform: translate(0, 0) scale(0.6) rotate(-10deg); opacity: 0; }
+            30%  { opacity: 1; }
+            100% { transform: translate(65px, -65px) scale(1.25) rotate(18deg); opacity: 0; }
+        }
+        .music-note-1 { animation: floatNote 1.4s ease-out infinite; }
+        .music-note-2 { animation: floatNote 1.4s ease-out 0.45s infinite; }
+        .music-note-3 { animation: floatNote 1.4s ease-out 0.9s infinite; }
+
+        /* 4. Bear Walks */
+        @keyframes stageBearWalk {
+            0%   { transform: translateX(-70px) translateY(0) rotate(-6deg); }
+            25%  { transform: translateX(-25px) translateY(-16px) rotate(6deg); }
+            50%  { transform: translateX(25px) translateY(0) rotate(-6deg); }
+            75%  { transform: translateX(70px) translateY(-16px) rotate(6deg); }
+            100% { transform: translateX(-70px) translateY(0) rotate(-6deg); }
+        }
+        .stage-anim-bear {
+            animation: stageBearWalk 2.2s ease-in-out infinite;
+        }
+
+        /* 5. Penguin Waggles */
+        @keyframes stagePenguinWaggle {
+            0%, 100% { transform-origin: bottom center; transform: rotate(0deg) translateX(0); }
+            20%      { transform-origin: bottom center; transform: rotate(-24deg) translateX(-16px); }
+            45%      { transform-origin: bottom center; transform: rotate(24deg) translateX(16px); }
+            70%      { transform-origin: bottom center; transform: rotate(-20deg) translateX(-12px); }
+            90%      { transform-origin: bottom center; transform: rotate(18deg) translateX(10px); }
+        }
+        .stage-anim-penguin {
+            animation: stagePenguinWaggle 1.3s ease-in-out infinite;
+        }
+
+        /* 6. Lion Roars */
+        @keyframes stageLionRoar {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            20%      { transform: scale(1.26) rotate(-5deg); }
+            32%      { transform: scale(1.3) rotate(5deg); }
+            44%      { transform: scale(1.26) rotate(-6deg); }
+            56%      { transform: scale(1.3) rotate(6deg); }
+            75%      { transform: scale(1.16) rotate(0deg); }
+        }
+        .stage-anim-lion {
+            animation: stageLionRoar 1.5s ease-in-out infinite;
+        }
+
+        @keyframes roarWave {
+            0%   { transform: scale(0.5); opacity: 0.9; }
+            100% { transform: scale(2.3); opacity: 0; }
+        }
+        .roar-ring-1 { animation: roarWave 1.4s ease-out infinite; }
+        .roar-ring-2 { animation: roarWave 1.4s ease-out 0.45s infinite; }
+
+        /* Confetti Overlay */
+        #confetti-canvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 60;
+        }
+    </style>
+</head>
+<body class="paw-bg text-slate-800 flex flex-col justify-between p-2.5 sm:p-4 md:p-5">
+
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Decorative Jungle Foliage -->
+    <svg class="leaf-decor top-1 left-1 w-24 h-24 sm:w-36 sm:h-36 text-emerald-600" viewBox="0 0 100 100" fill="currentColor">
+        <path d="M10,10 C50,5 85,35 90,90 C40,85 5,55 10,10 Z"/>
+    </svg>
+    <svg class="leaf-decor bottom-1 right-1 w-28 h-28 sm:w-40 sm:h-40 text-lime-600" style="animation-delay: -3s;" viewBox="0 0 100 100" fill="currentColor">
+        <path d="M90,90 C90,40 55,10 10,10 C10,60 45,90 90,90 Z"/>
+    </svg>
+
+    <!-- HEADER & INSTRUCTIONS -->
+    <header class="w-full max-w-5xl mx-auto z-10 mb-3">
+        <div class="bg-white/95 backdrop-blur-md rounded-3xl p-3 sm:p-4 shadow-lg border-4 border-amber-300 flex flex-col gap-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <!-- Title -->
+                <div class="flex items-center gap-2.5">
+                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-2xl shadow-inner border-2 border-amber-200">
+                        🌴
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold text-emerald-900 leading-tight">
+                            Animal Actions <span class="text-amber-600">Match</span>
+                        </h1>
+                        <p class="text-xs sm:text-sm font-bold text-slate-600">
+                            Match each animal to its action! Tap an animal, then tap what it does (or drag to connect).
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Right Controls: Progress & Sound -->
+                <div class="flex items-center gap-2 sm:gap-3 ml-auto">
+                    <!-- Progress Pill -->
+                    <div class="bg-emerald-50 border-2 border-emerald-300 rounded-2xl px-3.5 py-1.5 flex items-center gap-2">
+                        <span class="text-lg">⭐</span>
+                        <div>
+                            <div class="text-[11px] font-extrabold uppercase text-emerald-700 leading-none">Matched</div>
+                            <div id="match-counter" class="text-base sm:text-lg font-black text-emerald-900 leading-tight">0 / 6</div>
+                        </div>
+                    </div>
+
+                    <!-- Sound Toggle -->
+                    <button id="btn-sound" onclick="toggleSound()" class="btn-tactile px-3 py-2 rounded-2xl bg-sky-100 hover:bg-sky-200 border-2 border-sky-300 text-sky-900 font-extrabold text-sm flex items-center gap-1.5" title="Mute or unmute sound">
+                        <span id="sound-icon" class="text-lg">🔊</span>
+                        <span id="sound-text" class="hidden sm:inline">Sound On</span>
+                    </button>
+
+                    <!-- Shuffle / Reset -->
+                    <button onclick="resetGame()" class="btn-tactile px-3 py-2 rounded-2xl bg-amber-100 hover:bg-amber-200 border-2 border-amber-300 text-amber-900 font-extrabold text-sm flex items-center gap-1" title="Shuffle and restart">
+                        <span>🔄</span>
+                        <span class="hidden md:inline">Restart</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Feedback & Progress Bar -->
+            <div class="flex flex-col sm:flex-row items-center gap-2.5 pt-1 border-t-2 border-amber-100">
+                <div id="feedback-pill" class="w-full sm:w-auto flex-1 bg-amber-50 border-2 border-amber-200 rounded-2xl px-3.5 py-1.5 text-center sm:text-left font-extrabold text-sm sm:text-base text-amber-900 transition-colors">
+                    🐾 Pick an animal on the left or an action on the right to start!
+                </div>
+                <div class="w-full sm:w-48 h-3.5 bg-slate-200 rounded-full overflow-hidden border border-slate-300 shrink-0">
+                    <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-emerald-400 to-lime-500 transition-all duration-500" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN MATCHING ARENA (Two Columns + SVG Connecting Lines) -->
+    <main class="w-full max-w-5xl mx-auto z-10 my-auto">
+        <div id="matching-arena" class="relative bg-white/80 backdrop-blur-sm rounded-3xl p-3 sm:p-5 md:p-6 shadow-xl border-4 border-emerald-300">
+            
+            <!-- SVG Overlay for Visual Connecting Lines -->
+            <svg id="connector-svg" class="absolute inset-0 w-full h-full pointer-events-none z-10"></svg>
+
+            <!-- Column Headers -->
+            <div class="grid grid-cols-2 gap-6 sm:gap-16 md:gap-24 mb-2.5 relative z-20">
+                <div class="text-center">
+                    <span class="inline-block px-4 py-1 rounded-full bg-emerald-600 text-white font-display font-bold text-sm sm:text-base shadow">
+                        🦁 Animals
+                    </span>
+                </div>
+                <div class="text-center">
+                    <span class="inline-block px-4 py-1 rounded-full bg-amber-500 text-amber-950 font-display font-bold text-sm sm:text-base shadow">
+                        ⚡ Actions
+                    </span>
+                </div>
+            </div>
+
+            <!-- Two Columns Container -->
+            <div class="grid grid-cols-2 gap-6 sm:gap-16 md:gap-24 relative z-20">
+                <!-- Left Column: Animals -->
+                <div id="animals-column" class="flex flex-col gap-2.5 sm:gap-3">
+                    <!-- Animal cards injected here -->
+                </div>
+
+                <!-- Right Column: Actions -->
+                <div id="actions-column" class="flex flex-col gap-2.5 sm:gap-3">
+                    <!-- Action cards injected here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER HINT -->
+    <footer class="w-full max-w-5xl mx-auto z-10 mt-3 text-center">
+        <p class="inline-block bg-white/85 px-4 py-1.5 rounded-2xl border-2 border-emerald-200 text-xs sm:text-sm font-bold text-slate-600">
+            💡 Tip: Click any green matched card at any time to replay its animation and sound!
+        </p>
+    </footer>
+
+    <!-- CENTER-STAGE ACTION SPOTLIGHT POP-UP (Appears on Every Correct Match) -->
+    <div id="spotlight-modal" class="hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div id="spotlight-card" class="relative bg-gradient-to-b from-sky-100 via-emerald-50 to-amber-100 rounded-3xl p-5 sm:p-7 max-w-lg w-full text-center border-4 border-amber-400 shadow-2xl overflow-hidden">
+            
+            <!-- Top Badge -->
+            <div class="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-emerald-500 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow mb-3">
+                <span>✨</span> Awesome Match! <span>✨</span>
+            </div>
+
+            <!-- Animated Scene Container -->
+            <div id="spotlight-stage" class="relative w-full h-48 sm:h-56 rounded-2xl bg-white/80 border-4 border-emerald-200 shadow-inner flex items-center justify-center overflow-hidden mb-4">
+                <!-- Custom scene HTML injected dynamically for each animal -->
+            </div>
+
+            <!-- Big Sentence Display -->
+            <h2 id="spotlight-phrase" class="font-display text-3xl sm:text-4xl font-bold text-emerald-900 mb-1">
+                Snake slithers!
+            </h2>
+            <p id="spotlight-subtext" class="text-sm sm:text-base font-bold text-slate-600 mb-5">
+                Look at how it moves!
+            </p>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <button onclick="replaySpotlight()" class="btn-tactile px-5 py-2.5 rounded-2xl bg-sky-400 hover:bg-sky-500 text-sky-950 font-extrabold text-sm sm:text-base border-2 border-sky-600 flex items-center gap-1.5">
+                    <span>🔊</span> Replay Action
+                </button>
+                <button id="btn-spotlight-continue" onclick="closeSpotlight()" class="btn-tactile px-6 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-sm sm:text-base border-2 border-emerald-700 flex items-center gap-1.5">
+                    <span>Continue</span> <span>➡️</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WIN / VICTORY CELEBRATION MODAL -->
+    <div id="victory-modal" class="hidden fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center border-4 border-amber-400 shadow-2xl">
+            <div class="text-6xl mb-2">🏆🦁🎉</div>
+            <h2 class="font-display text-3xl font-bold text-emerald-800 mb-1">You Matched All 6!</h2>
+            <p class="text-slate-600 font-bold text-sm sm:text-base mb-4">
+                Fantastic job! You connected every animal with its action!
+            </p>
+
+            <!-- Stars Banner -->
+            <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 mb-5">
+                <div class="text-2xl sm:text-3xl tracking-widest">⭐⭐⭐⭐⭐⭐</div>
+                <div class="text-xs font-extrabold uppercase text-amber-700 mt-1">6 / 6 Safari Stars Earned</div>
+            </div>
+
+            <!-- Replay Any Pair Gallery -->
+            <div class="mb-5">
+                <div class="text-xs font-extrabold uppercase text-slate-500 mb-2">Tap any pair to watch again:</div>
+                <div id="victory-gallery" class="grid grid-cols-3 gap-2">
+                    <!-- Quick replay buttons injected here -->
+                </div>
+            </div>
+
+            <button onclick="resetGame()" class="btn-tactile w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-display font-bold text-xl border-2 border-emerald-700">
+                🔄 Play Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ANIMAL ACTIONS DATASET
+         */
+        const PAIRS_DATA = [
+            {
+                id: 'snake',
+                emoji: '🐍',
+                name: 'Snake',
+                verb: 'slithers',
+                phrase: 'Snake slithers!',
+                description: 'The long green snake glides smoothly in an S-wave across the grass!',
+                color: '#10b981',
+                cardBg: 'from-lime-50 to-emerald-100',
+                cardBorder: 'border-emerald-300'
+            },
+            {
+                id: 'monkey',
+                emoji: '🐒',
+                name: 'Monkey',
+                verb: 'swings',
+                phrase: 'Monkey swings!',
+                description: 'The playful monkey holds the jungle vine and swings high!',
+                color: '#f97316',
+                cardBg: 'from-amber-50 to-orange-100',
+                cardBorder: 'border-orange-300'
+            },
+            {
+                id: 'elephant',
+                emoji: '🐘',
+                name: 'Elephant',
+                verb: 'trumpets',
+                phrase: 'Elephant trumpets!',
+                description: 'The big elephant lifts its trunk and plays a loud musical trumpet!',
+                color: '#0284c7',
+                cardBg: 'from-sky-50 to-blue-100',
+                cardBorder: 'border-sky-300'
+            },
+            {
+                id: 'bear',
+                emoji: '🐻',
+                name: 'Bear',
+                verb: 'walks',
+                phrase: 'Bear walks!',
+                description: 'The big brown bear takes heavy steps leaving paw prints behind!',
+                color: '#b45309',
+                cardBg: 'from-yellow-50 to-amber-100',
+                cardBorder: 'border-amber-400'
+            },
+            {
+                id: 'penguin',
+                emoji: '🐧',
+                name: 'Penguin',
+                verb: 'waggles',
+                phrase: 'Penguin waggles!',
+                description: 'The cute penguin tilts side to side on the icy snow!',
+                color: '#0891b2',
+                cardBg: 'from-cyan-50 to-sky-100',
+                cardBorder: 'border-cyan-300'
+            },
+            {
+                id: 'lion',
+                emoji: '🦁',
+                name: 'Lion',
+                verb: 'roars',
+                phrase: 'Lion roars!',
+                description: 'The mighty lion lets out a giant jungle roar!',
+                color: '#e11d48',
+                cardBg: 'from-orange-50 to-rose-100',
+                cardBorder: 'border-rose-300'
+            }
+        ];
+
+        // Game State
+        let shuffledAnimals = [];
+        let shuffledActions = [];
+        let matchedIds = new Set();
+        let selectedAnimalId = null;
+        let selectedActionId = null;
+        let activeSpotlightItem = null;
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        // Pointer / Touch Drag State
+        let dragSourceType = null; // 'animal' | 'action'
+        let dragSourceId = null;
+        let tempPointerPos = null;
+
+        /**
+         * SHUFFLE HELPER (Ensures rows aren't trivially aligned straight across)
+         */
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        /**
+         * INITIALIZE / RESET GAME
+         */
+        function resetGame() {
+            matchedIds.clear();
+            selectedAnimalId = null;
+            selectedActionId = null;
+            dragSourceType = null;
+            dragSourceId = null;
+            tempPointerPos = null;
+
+            shuffledAnimals = shuffleArray(PAIRS_DATA);
+            shuffledActions = shuffleArray(PAIRS_DATA);
+
+            // Ensure at least 4 items are not directly horizontal to make matching fun
+            let attempts = 0;
+            while (attempts < 10 && shuffledAnimals.filter((a, idx) => a.id === shuffledActions[idx].id).length > 2) {
+                shuffledActions = shuffleArray(PAIRS_DATA);
+                attempts++;
+            }
+
+            document.getElementById('victory-modal').classList.add('hidden');
+            document.getElementById('spotlight-modal').classList.add('hidden');
+
+            updateProgressUI();
+            setFeedback('🐾 Pick an animal on the left or an action on the right to start!', 'neutral');
+            renderColumns();
+            requestAnimationFrame(drawAllLines);
+        }
+
+        /**
+         * RENDER LEFT (ANIMALS) AND RIGHT (ACTIONS) COLUMNS
+         */
+        function renderColumns() {
+            const animalsCol = document.getElementById('animals-column');
+            const actionsCol = document.getElementById('actions-column');
+
+            animalsCol.innerHTML = shuffledAnimals.map(item => {
+                const isMatched = matchedIds.has(item.id);
+                const isSelected = selectedAnimalId === item.id;
+                return `
+                    <div
+                        id="animal-card-${item.id}"
+                        data-type="animal"
+                        data-id="${item.id}"
+                        onclick="handleCardTap('animal', '${item.id}')"
+                        onpointerdown="handlePointerDown(event, 'animal', '${item.id}')"
+                        class="match-card relative rounded-2xl bg-gradient-to-r ${item.cardBg} border-3 sm:border-4 ${item.cardBorder} px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between cursor-pointer ${isMatched ? 'matched' : ''} ${isSelected ? 'selected' : ''}"
+                    >
+                        <div class="flex items-center gap-2 sm:gap-3">
+                            <span class="text-3xl sm:text-4xl drop-shadow-sm">${item.emoji}</span>
+                            <span class="font-display font-bold text-base sm:text-xl text-slate-800">${item.name}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            ${isMatched
+                                ? `<span class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-500 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow">✓</span>`
+                                : `<span class="w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white shadow-sm"></span>`
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            actionsCol.innerHTML = shuffledActions.map(item => {
+                const isMatched = matchedIds.has(item.id);
+                const isSelected = selectedActionId === item.id;
+                return `
+                    <div
+                        id="action-card-${item.id}"
+                        data-type="action"
+                        data-id="${item.id}"
+                        onclick="handleCardTap('action', '${item.id}')"
+                        onpointerdown="handlePointerDown(event, 'action', '${item.id}')"
+                        class="match-card relative rounded-2xl bg-white border-3 sm:border-4 border-amber-300 px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between cursor-pointer ${isMatched ? 'matched' : ''} ${isSelected ? 'selected' : ''}"
+                    >
+                        <div class="flex items-center gap-1.5">
+                            ${isMatched
+                                ? `<span class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-500 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow">✓</span>`
+                                : `<span class="w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white shadow-sm"></span>`
+                            }
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-display font-bold text-base sm:text-xl text-emerald-900">${item.verb}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * CLICK / TAP TO CONNECT LOGIC
+         */
+        function handleCardTap(type, id) {
+            // If already matched, clicking replays that animal's spotlight animation!
+            if (matchedIds.has(id)) {
+                const item = PAIRS_DATA.find(p => p.id === id);
+                if (item) openSpotlight(item, false);
+                return;
+            }
+
+            if (type === 'animal') {
+                selectedAnimalId = (selectedAnimalId === id) ? null : id;
+                if (selectedAnimalId) {
+                    const animal = PAIRS_DATA.find(p => p.id === id);
+                    setFeedback(`Selected ${animal.emoji} ${animal.name}! Now tap what it does on the right.`, 'info');
+                } else {
+                    setFeedback('🐾 Pick an animal on the left or an action on the right!', 'neutral');
+                }
+            } else {
+                selectedActionId = (selectedActionId === id) ? null : id;
+                if (selectedActionId) {
+                    const actionItem = PAIRS_DATA.find(p => p.id === id);
+                    setFeedback(`Selected "${actionItem.verb}"! Now tap the matching animal on the left.`, 'info');
+                } else {
+                    setFeedback('🐾 Pick an animal on the left or an action on the right!', 'neutral');
+                }
+            }
+
+            renderColumns();
+            drawAllLines();
+
+            // Check if both sides have a selection
+            if (selectedAnimalId && selectedActionId) {
+                evaluatePair(selectedAnimalId, selectedActionId);
+            }
+        }
+
+        /**
+         * POINTER DRAG-TO-CONNECT SUPPORT (Works seamlessly on Mouse & Touchscreens)
+         */
+        function handlePointerDown(e, type, id) {
+            if (matchedIds.has(id)) return;
+            dragSourceType = type;
+            dragSourceId = id;
+        }
+
+        window.addEventListener('pointermove', (e) => {
+            if (!dragSourceId) return;
+
+            const arena = document.getElementById('matching-arena');
+            const rect = arena.getBoundingClientRect();
+            tempPointerPos = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+
+            // Highlight potential drop target underneath pointer
+            document.querySelectorAll('.match-card.drag-over').forEach(el => el.classList.remove('drag-over'));
+            const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+            const targetCard = elemBelow ? elemBelow.closest('.match-card') : null;
+            if (targetCard && targetCard.dataset.type !== dragSourceType && !matchedIds.has(targetCard.dataset.id)) {
+                targetCard.classList.add('drag-over');
+            }
+
+            drawAllLines();
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            if (!dragSourceId) return;
+
+            document.querySelectorAll('.match-card.drag-over').forEach(el => el.classList.remove('drag-over'));
+            const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+            const targetCard = elemBelow ? elemBelow.closest('.match-card') : null;
+
+            if (targetCard && targetCard.dataset.type !== dragSourceType && !matchedIds.has(targetCard.dataset.id)) {
+                const animalId = dragSourceType === 'animal' ? dragSourceId : targetCard.dataset.id;
+                const actionId = dragSourceType === 'action' ? dragSourceId : targetCard.dataset.id;
+                dragSourceId = null;
+                dragSourceType = null;
+                tempPointerPos = null;
+                evaluatePair(animalId, actionId);
+                return;
+            }
+
+            dragSourceId = null;
+            dragSourceType = null;
+            tempPointerPos = null;
+            drawAllLines();
+        });
+
+        /**
+         * EVALUATE MATCH ATTEMPT
+         */
+        function evaluatePair(animalId, actionId) {
+            selectedAnimalId = null;
+            selectedActionId = null;
+
+            if (animalId === actionId) {
+                // CORRECT MATCH!
+                matchedIds.add(animalId);
+                const matchedItem = PAIRS_DATA.find(p => p.id === animalId);
+
+                updateProgressUI();
+                setFeedback(`🌟 Awesome! ${matchedItem.phrase}`, 'success');
+                renderColumns();
+                drawAllLines();
+
+                // Immediately trigger the big spotlight animation & sound!
+                openSpotlight(matchedItem, true);
+            } else {
+                // INCORRECT MATCH
+                renderColumns();
+                drawAllLines();
+
+                const animalCard = document.getElementById(`animal-card-${animalId}`);
+                const actionCard = document.getElementById(`action-card-${actionId}`);
+
+                [animalCard, actionCard].forEach(card => {
+                    if (card) {
+                        card.classList.remove('anim-wrong');
+                        void card.offsetWidth;
+                        card.classList.add('anim-wrong');
+                        setTimeout(() => card.classList.remove('anim-wrong'), 500);
+                    }
+                });
+
+                playWrongSound();
+                setFeedback('🙈 Not quite! Try again!', 'error');
+                speakEnglish('Try again!', 80);
+            }
+        }
+
+        /**
+         * DRAW SVG CONNECTING LINES BETWEEN MATCHED PAIRS (AND ACTIVE DRAG LINE)
+         */
+        function drawAllLines() {
+            const svg = document.getElementById('connector-svg');
+            const arena = document.getElementById('matching-arena');
+            if (!svg || !arena) return;
+
+            const arenaRect = arena.getBoundingClientRect();
+            let pathsHtml = '';
+
+            // 1. Draw solid glowing lines for all completed matches
+            matchedIds.forEach(id => {
+                const item = PAIRS_DATA.find(p => p.id === id);
+                const leftEl = document.getElementById(`animal-card-${id}`);
+                const rightEl = document.getElementById(`action-card-${id}`);
+                if (!leftEl || !rightEl) return;
+
+                const lRect = leftEl.getBoundingClientRect();
+                const rRect = rightEl.getBoundingClientRect();
+
+                const x1 = lRect.right - arenaRect.left - 4;
+                const y1 = lRect.top + lRect.height / 2 - arenaRect.top;
+                const x2 = rRect.left - arenaRect.left + 4;
+                const y2 = rRect.top + rRect.height / 2 - arenaRect.top;
+                const cx = (x1 + x2) / 2;
+
+                pathsHtml += `
+                    <path d="M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}"
+                          fill="none" stroke="${item.color}" stroke-width="6" opacity="0.28" class="connector-line" />
+                    <path d="M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}"
+                          fill="none" stroke="#10b981" stroke-width="3.5" class="connector-line" />
+                    <circle cx="${x1}" cy="${y1}" r="5" fill="#10b981" />
+                    <circle cx="${x2}" cy="${y2}" r="5" fill="#10b981" />
+                `;
+            });
+
+            // 2. Draw animated dashed line while dragging
+            if (dragSourceId && tempPointerPos) {
+                const sourceEl = document.getElementById(`${dragSourceType}-card-${dragSourceId}`);
+                if (sourceEl) {
+                    const sRect = sourceEl.getBoundingClientRect();
+                    const x1 = dragSourceType === 'animal'
+                        ? sRect.right - arenaRect.left - 4
+                        : sRect.left - arenaRect.left + 4;
+                    const y1 = sRect.top + sRect.height / 2 - arenaRect.top;
+                    const x2 = tempPointerPos.x;
+                    const y2 = tempPointerPos.y;
+                    const cx = (x1 + x2) / 2;
+
+                    pathsHtml += `
+                        <path d="M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}"
+                              fill="none" stroke="#f59e0b" stroke-width="4.5" class="connector-line connector-line-active" />
+                        <circle cx="${x1}" cy="${y1}" r="6" fill="#f59e0b" />
+                        <circle cx="${x2}" cy="${y2}" r="6" fill="#f59e0b" />
+                    `;
+                }
+            }
+
+            svg.innerHTML = pathsHtml;
+        }
+
+        window.addEventListener('resize', drawAllLines);
+
+        /**
+         * OPEN CUSTOM ANIMAL ACTION SPOTLIGHT MODAL
+         */
+        function openSpotlight(item, checkWinAfter = true) {
+            activeSpotlightItem = item;
+            activeSpotlightItem._checkWin = checkWinAfter;
+
+            const modal = document.getElementById('spotlight-modal');
+            const stage = document.getElementById('spotlight-stage');
+            const phraseEl = document.getElementById('spotlight-phrase');
+            const subtextEl = document.getElementById('spotlight-subtext');
+            const continueBtn = document.getElementById('btn-spotlight-continue');
+
+            phraseEl.textContent = item.phrase;
+            subtextEl.textContent = item.description;
+
+            if (checkWinAfter && matchedIds.size === PAIRS_DATA.length) {
+                continueBtn.innerHTML = `<span>See Final Score</span> <span>🏆</span>`;
+            } else {
+                continueBtn.innerHTML = `<span>Continue</span> <span>➡️</span>`;
+            }
+
+            // Build rich custom scene HTML for each of the 6 animals
+            stage.innerHTML = getCustomAnimalStageHTML(item.id);
+
+            modal.classList.remove('hidden');
+
+            // Play celebratory chime + synthesized animal sound + English speech
+            playMatchChime();
+            setTimeout(() => playAnimalSoundEffect(item.id), 220);
+            speakEnglish(item.phrase, 450);
+        }
+
+        function replaySpotlight() {
+            if (!activeSpotlightItem) return;
+            const stage = document.getElementById('spotlight-stage');
+            stage.innerHTML = getCustomAnimalStageHTML(activeSpotlightItem.id);
+            playAnimalSoundEffect(activeSpotlightItem.id);
+            speakEnglish(activeSpotlightItem.phrase, 300);
+        }
+
+        function closeSpotlight() {
+            document.getElementById('spotlight-modal').classList.add('hidden');
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+
+            // If all 6 pairs are matched, trigger the Win Celebration Screen!
+            if (activeSpotlightItem && activeSpotlightItem._checkWin && matchedIds.size === PAIRS_DATA.length) {
+                showVictoryScreen();
+            }
+        }
+
+        /**
+         * CUSTOM VISUAL STAGE SCENES FOR EACH ANIMAL ACTION
+         */
+        function getCustomAnimalStageHTML(id) {
+            switch (id) {
+                case 'snake':
+                    return `
+                        <div class="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-emerald-400 to-lime-300 border-t-4 border-emerald-500"></div>
+                        <div class="absolute bottom-11 left-8 text-2xl animate-pulse">🌿</div>
+                        <div class="absolute bottom-11 right-10 text-2xl animate-pulse">🌼</div>
+                        <div class="absolute top-5 left-12 text-xl animate-bounce">✨</div>
+                        <div class="absolute top-6 right-14 text-xl animate-bounce" style="animation-delay:0.3s">✨</div>
+                        <div class="stage-anim-snake relative z-10 text-7xl sm:text-8xl drop-shadow-lg">🐍</div>
+                    `;
+                case 'monkey':
+                    return `
+                        <!-- Jungle Vine -->
+                        <svg class="absolute top-0 inset-x-0 w-full h-14 text-emerald-700" viewBox="0 0 300 50" preserveAspectRatio="none">
+                            <path d="M0,10 Q150,45 300,8" fill="none" stroke="currentColor" stroke-width="6" />
+                        </svg>
+                        <div class="absolute top-3 left-8 text-2xl">🍃</div>
+                        <div class="absolute top-4 right-8 text-2xl">🍌</div>
+                        <div class="stage-anim-monkey relative z-10 flex flex-col items-center -mt-4">
+                            <div class="w-1.5 h-10 bg-emerald-700 rounded-full"></div>
+                            <span class="text-7xl sm:text-8xl drop-shadow-lg -mt-2">🐒</span>
+                        </div>
+                    `;
+                case 'elephant':
+                    return `
+                        <div class="absolute inset-x-0 bottom-0 h-10 bg-amber-200/80 border-t-2 border-amber-300"></div>
+                        <div class="relative flex items-center justify-center">
+                            <span class="stage-anim-elephant text-7xl sm:text-8xl drop-shadow-lg">🐘</span>
+                            <span class="music-note-1 absolute -top-2 right-0 text-3xl">🎵</span>
+                            <span class="music-note-2 absolute top-2 -right-4 text-2xl">🎶</span>
+                            <span class="music-note-3 absolute -top-4 right-4 text-2xl">💨</span>
+                        </div>
+                    `;
+                case 'bear':
+                    return `
+                        <div class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-amber-300 to-yellow-100 border-t-2 border-amber-400"></div>
+                        <div class="absolute bottom-3 left-10 text-xl opacity-70">🐾</div>
+                        <div class="absolute bottom-4 left-24 text-xl opacity-85">🐾</div>
+                        <div class="absolute bottom-3 right-24 text-xl opacity-70">🐾</div>
+                        <div class="absolute top-4 left-8 text-2xl">🌲</div>
+                        <div class="absolute top-4 right-8 text-2xl">🌲</div>
+                        <span class="stage-anim-bear relative z-10 text-7xl sm:text-8xl drop-shadow-lg">🐻</span>
+                    `;
+                case 'penguin':
+                    return `
+                        <div class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-cyan-300 to-sky-100 border-t-4 border-white"></div>
+                        <div class="absolute top-5 left-12 text-2xl animate-pulse">❄️</div>
+                        <div class="absolute top-7 right-12 text-2xl animate-pulse" style="animation-delay:0.4s">❄️</div>
+                        <div class="absolute bottom-10 left-16 text-xl">✨</div>
+                        <div class="absolute bottom-10 right-16 text-xl">✨</div>
+                        <span class="stage-anim-penguin relative z-10 text-7xl sm:text-8xl drop-shadow-lg">🐧</span>
+                    `;
+                case 'lion':
+                    return `
+                        <div class="absolute inset-x-0 bottom-0 h-10 bg-amber-200/70"></div>
+                        <div class="relative flex items-center justify-center">
+                            <div class="roar-ring-1 absolute w-28 h-28 rounded-full border-4 border-amber-400"></div>
+                            <div class="roar-ring-2 absolute w-28 h-28 rounded-full border-4 border-orange-500"></div>
+                            <span class="stage-anim-lion relative z-10 text-7xl sm:text-8xl drop-shadow-lg">🦁</span>
+                        </div>
+                    `;
+                default:
+                    return '';
+            }
+        }
+
+        /**
+         * SHOW FINAL VICTORY SCREEN + CONFETTI
+         */
+        function showVictoryScreen() {
+            const gallery = document.getElementById('victory-gallery');
+            gallery.innerHTML = PAIRS_DATA.map(item => `
+                <button onclick="openSpotlight(PAIRS_DATA.find(p => p.id === '${item.id}'), false)"
+                        class="btn-tactile p-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-300 flex flex-col items-center">
+                    <span class="text-2xl">${item.emoji}</span>
+                    <span class="text-xs font-extrabold text-emerald-900">${item.verb}</span>
+                </button>
+            `).join('');
+
+            document.getElementById('victory-modal').classList.remove('hidden');
+            launchConfetti();
+            playMatchChime();
+            speakEnglish('Fantastic! You matched all six animal actions!', 200);
+        }
+
+        /**
+         * UPDATE HEADER PROGRESS BAR & FEEDBACK PILL
+         */
+        function updateProgressUI() {
+            const count = matchedIds.size;
+            const total = PAIRS_DATA.length;
+            document.getElementById('match-counter').textContent = `${count} / ${total}`;
+            document.getElementById('progress-bar-fill').style.width = `${(count / total) * 100}%`;
+        }
+
+        function setFeedback(text, tone = 'neutral') {
+            const pill = document.getElementById('feedback-pill');
+            pill.textContent = text;
+            pill.className = 'w-full sm:w-auto flex-1 rounded-2xl px-3.5 py-1.5 text-center sm:text-left font-extrabold text-sm sm:text-base transition-colors border-2 ';
+
+            if (tone === 'success') {
+                pill.className += 'bg-emerald-100 border-emerald-400 text-emerald-900';
+            } else if (tone === 'error') {
+                pill.className += 'bg-rose-100 border-rose-400 text-rose-900';
+            } else if (tone === 'info') {
+                pill.className += 'bg-sky-100 border-sky-400 text-sky-900';
+            } else {
+                pill.className += 'bg-amber-50 border-amber-200 text-amber-900';
+            }
+        }
+
+        /**
+         * WEB AUDIO API SOUND SYNTHESIS (No External Audio URLs)
+         */
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) audioCtx = new AudioCtx();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playMatchChime() {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.08);
+                    gain.gain.setValueAtTime(0.16, now + i * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + i * 0.08);
+                    osc.stop(now + i * 0.08 + 0.26);
+                });
+            } catch (e) {}
+        }
+
+        function playWrongSound() {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(210, now);
+                osc.frequency.linearRampToValueAtTime(150, now + 0.24);
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.27);
+            } catch (e) {}
+        }
+
+        function playAnimalSoundEffect(animalId) {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const now = ctx.currentTime;
+
+                if (animalId === 'snake') {
+                    // Filtered noise hiss
+                    const bufferSize = ctx.sampleRate * 0.7;
+                    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                    const noise = ctx.createBufferSource();
+                    noise.buffer = buffer;
+                    const filter = ctx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(5200, now);
+                    filter.Q.value = 3.2;
+
+                    const gain = ctx.createGain();
+                    gain.gain.setValueAtTime(0.01, now);
+                    gain.gain.linearRampToValueAtTime(0.22, now + 0.14);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(ctx.destination);
+                    noise.start(now);
+                    noise.stop(now + 0.7);
+
+                } else if (animalId === 'monkey') {
+                    // Playful "ooh-ooh-aah" chirps
+                    [0, 0.17, 0.35].forEach((offset, idx) => {
+                        const freqs = [480, 560, 760];
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freqs[idx], now + offset);
+                        osc.frequency.exponentialRampToValueAtTime(freqs[idx] * 1.35, now + offset + 0.12);
+                        gain.gain.setValueAtTime(0.01, now + offset);
+                        gain.gain.linearRampToValueAtTime(0.2, now + offset + 0.03);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.14);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + offset);
+                        osc.stop(now + offset + 0.15);
+                    });
+
+                } else if (animalId === 'elephant') {
+                    // Brassy trumpet sweep
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(240, now);
+                    osc.frequency.exponentialRampToValueAtTime(640, now + 0.25);
+                    osc.frequency.linearRampToValueAtTime(550, now + 0.55);
+                    osc.frequency.exponentialRampToValueAtTime(320, now + 0.8);
+
+                    const filter = ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(1700, now);
+
+                    gain.gain.setValueAtTime(0.01, now);
+                    gain.gain.linearRampToValueAtTime(0.22, now + 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.82);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.82);
+
+                } else if (animalId === 'bear') {
+                    // Heavy rhythmic footsteps
+                    [0, 0.24, 0.48].forEach(offset => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(125, now + offset);
+                        osc.frequency.exponentialRampToValueAtTime(42, now + offset + 0.18);
+                        gain.gain.setValueAtTime(0.32, now + offset);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.2);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + offset);
+                        osc.stop(now + offset + 0.21);
+                    });
+
+                } else if (animalId === 'penguin') {
+                    // Cute side-to-side waddle squeaks
+                    [0, 0.18, 0.36, 0.54].forEach((offset, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        const base = idx % 2 === 0 ? 660 : 790;
+                        osc.frequency.setValueAtTime(base, now + offset);
+                        osc.frequency.exponentialRampToValueAtTime(base * 1.2, now + offset + 0.1);
+                        gain.gain.setValueAtTime(0.01, now + offset);
+                        gain.gain.linearRampToValueAtTime(0.16, now + offset + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.12);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + offset);
+                        osc.stop(now + offset + 0.13);
+                    });
+
+                } else if (animalId === 'lion') {
+                    // Deep jungle roar
+                    const osc = ctx.createOscillator();
+                    const osc2 = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc2.type = 'triangle';
+
+                    osc.frequency.setValueAtTime(135, now);
+                    osc.frequency.linearRampToValueAtTime(165, now + 0.22);
+                    osc.frequency.exponentialRampToValueAtTime(65, now + 0.88);
+
+                    osc2.frequency.setValueAtTime(95, now);
+                    osc2.frequency.exponentialRampToValueAtTime(50, now + 0.88);
+
+                    const filter = ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(480, now);
+
+                    gain.gain.setValueAtTime(0.01, now);
+                    gain.gain.linearRampToValueAtTime(0.32, now + 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+
+                    osc.connect(filter);
+                    osc2.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(now);
+                    osc2.start(now);
+                    osc.stop(now + 0.9);
+                    osc2.stop(now + 0.9);
+                }
+            } catch (e) {}
+        }
+
+        function speakEnglish(text, delayMs = 200) {
+            if (!soundEnabled || !('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                setTimeout(() => {
+                    if (!soundEnabled) return;
+                    const utter = new SpeechSynthesisUtterance(text);
+                    utter.lang = 'en-US';
+                    utter.rate = 0.88;
+                    utter.pitch = 1.12;
+                    window.speechSynthesis.speak(utter);
+                }, delayMs);
+            } catch (e) {}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('btn-sound');
+            const icon = document.getElementById('sound-icon');
+            const text = document.getElementById('sound-text');
+
+            if (soundEnabled) {
+                icon.textContent = '🔊';
+                text.textContent = 'Sound On';
+                btn.classList.remove('bg-slate-200', 'border-slate-300', 'text-slate-600');
+                btn.classList.add('bg-sky-100', 'border-sky-300', 'text-sky-900');
+            } else {
+                icon.textContent = '🔇';
+                text.textContent = 'Muted';
+                btn.classList.remove('bg-sky-100', 'border-sky-300', 'text-sky-900');
+                btn.classList.add('bg-slate-200', 'border-slate-300', 'text-slate-600');
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        }
+
+        /**
+         * CELEBRATION CONFETTI
+         */
+        function launchConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const colors = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#ec4899', '#84cc16'];
+            const pieces = Array.from({ length: 120 }, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                size: Math.random() * 9 + 5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                speedY: Math.random() * 4 + 2.5,
+                speedX: (Math.random() - 0.5) * 3,
+                angle: Math.random() * 360,
+                spin: (Math.random() - 0.5) * 8
+            }));
+
+            let frame = 0;
+            function step() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                pieces.forEach(p => {
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    p.angle += p.spin;
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.angle * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.65);
+                    ctx.restore();
+                });
+                frame++;
+                if (frame < 165) {
+                    requestAnimationFrame(step);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            step();
+        }
+
+        // Start game on load
+        window.onload = function () {
+            resetGame();
+        };
+    </script>
+</body>
+</html>
